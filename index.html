@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ОтпускТрекер</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700&family=Onest:wght@300;400;500;600&display=swap');
+:root{
+  --bg:#0d1117;--card:#161b22;--card2:#1c2333;--border:#30363d;
+  --text:#e6edf3;--muted:#8b949e;--accent:#3fb950;--accent2:#58a6ff;
+  --accent3:#f78166;--sidebar-bg:#161b22;--radius:10px;
+  --shadow:0 4px 24px rgba(0,0,0,.45);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Onest',sans-serif;background:var(--bg);color:var(--text);display:flex}
+
+/* SIDEBAR */
+#sidebar{
+  width:240px;min-width:240px;height:100vh;
+  background:var(--sidebar-bg);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;
+  position:relative;z-index:10;
+}
+.logo{padding:20px 20px 16px;border-bottom:1px solid var(--border)}
+.logo-icon{font-size:22px;margin-bottom:4px}
+.logo-name{font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;color:var(--accent)}
+.logo-sub{font-size:10px;color:var(--muted);margin-top:2px}
+nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px}
+nav button{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;
+  border-radius:var(--radius);border:none;background:none;
+  color:var(--muted);font-size:13px;font-family:'Onest',sans-serif;
+  cursor:pointer;text-align:left;width:100%;transition:all .15s;
+}
+nav button:hover{background:var(--card2);color:var(--text)}
+nav button.active{background:rgba(63,185,80,.13);color:var(--accent);font-weight:600}
+nav button .ico{font-size:15px;width:20px;text-align:center}
+.sb-status{padding:14px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.dot{width:7px;height:7px;border-radius:50%;background:#444;flex-shrink:0}
+.dot.ok{background:var(--accent);box-shadow:0 0 6px var(--accent)}
+.dot.err{background:var(--accent3)}
+
+/* WRAP */
+#wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* HEADER */
+#hdr{
+  height:56px;min-height:56px;background:var(--card);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;flex-shrink:0;
+}
+.hdr-title{font-family:'Unbounded',sans-serif;font-size:13px;font-weight:600}
+.btn-sm{
+  background:var(--card2);border:1px solid var(--border);
+  color:var(--muted);padding:6px 13px;border-radius:var(--radius);
+  cursor:pointer;font-size:12px;font-family:'Onest',sans-serif;transition:all .15s;
+}
+.btn-sm:hover{color:var(--text);border-color:var(--accent2)}
+
+/* CONTENT */
+#content{flex:1;overflow-y:auto;padding:28px}
+.page{display:none}
+.page.active{display:block}
+.pg-title{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:700;margin-bottom:4px}
+.pg-sub{font-size:13px;color:var(--muted);margin-bottom:22px}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+.stat-ico{font-size:20px;margin-bottom:7px}
+.stat-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.stat-val{font-family:'Unbounded',sans-serif;font-size:22px;font-weight:700}
+.stat-unit{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* PERIOD */
+.period-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
+.pbtn{
+  padding:6px 14px;border-radius:var(--radius);border:1px solid var(--border);
+  background:var(--card2);color:var(--muted);font-size:12px;
+  cursor:pointer;font-family:'Onest',sans-serif;transition:all .15s;
+}
+.pbtn:hover,.pbtn.active{border-color:var(--accent);color:var(--accent)}
+.inp-date{
+  background:var(--card2);border:1px solid var(--border);color:var(--text);
+  padding:6px 10px;border-radius:var(--radius);font-size:12px;
+  font-family:'Onest',sans-serif;
+}
+.inp-date:focus{outline:none;border-color:var(--accent2)}
+
+/* CHARTS */
+.charts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:22px}
+.chart-c{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}
+.chart-c h3{font-family:'Unbounded',sans-serif;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+.chart-wrap{position:relative;height:150px}
+
+/* CARD */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
+.card-head h2{font-family:'Unbounded',sans-serif;font-size:12px;font-weight:700}
+.lnk{font-size:12px;color:var(--accent2);cursor:pointer;background:none;border:none;font-family:'Onest',sans-serif}
+.lnk:hover{text-decoration:underline}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:9px 14px;background:var(--card2);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.4px;font-weight:500;white-space:nowrap}
+td{padding:9px 14px;border-bottom:1px solid rgba(48,54,61,.45);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.sort-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0 2px}
+.sort-btn:hover{color:var(--accent2)}
+
+/* BADGES */
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.bg{background:rgba(63,185,80,.15);color:var(--accent)}
+.bb{background:rgba(88,166,255,.15);color:var(--accent2)}
+.br{background:rgba(247,129,102,.15);color:var(--accent3)}
+.bk{background:rgba(139,148,158,.15);color:var(--muted)}
+.bp{background:rgba(210,168,255,.15);color:#d2a8ff}
+.ba{background:rgba(255,166,55,.15);color:#ffa637;animation:pa 2s ease-in-out infinite}
+@keyframes pa{0%,100%{box-shadow:0 0 4px rgba(255,166,55,.2)}50%{box-shadow:0 0 10px rgba(255,166,55,.5)}}
+
+/* FORM */
+.form-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:22px;max-width:680px}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fi{display:flex;flex-direction:column;gap:5px}
+.fi label{font-size:11px;color:var(--muted);font-weight:500}
+.fi input,.fi select,.fi textarea{
+  background:var(--card2);border:1px solid var(--border);color:var(--text);
+  padding:8px 11px;border-radius:var(--radius);font-size:13px;
+  font-family:'Onest',sans-serif;transition:border-color .15s;
+}
+.fi input:focus,.fi select,.fi textarea:focus{outline:none;border-color:var(--accent2)}
+.fi select option{background:var(--card2)}
+.fi.span2{grid-column:span 2}
+.fa{display:flex;gap:10px;margin-top:16px}
+
+/* BTNS */
+.btn-p{background:var(--accent);color:#0d1117;border:none;padding:7px 16px;border-radius:var(--radius);font-size:12px;font-weight:700;cursor:pointer;font-family:'Onest',sans-serif;transition:opacity .15s}
+.btn-p:hover{opacity:.85}
+.btn-s{background:var(--card2);border:1px solid var(--border);color:var(--text);padding:7px 16px;border-radius:var(--radius);font-size:12px;cursor:pointer;font-family:'Onest',sans-serif;transition:all .15s}
+.btn-s:hover{border-color:var(--accent2)}
+.btn-e{background:rgba(88,166,255,.12);border:1px solid var(--accent2);color:var(--accent2);padding:4px 9px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .15s}
+.btn-e:hover{background:rgba(88,166,255,.25)}
+.btn-d{background:rgba(247,129,102,.1);border:1px solid var(--accent3);color:var(--accent3);padding:4px 9px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .15s}
+.btn-d:hover{background:rgba(247,129,102,.22)}
+
+/* UPLOAD */
+.dropz{border:2px dashed var(--border);border-radius:var(--radius);padding:38px 20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:18px}
+.dropz:hover,.dropz.drag{border-color:var(--accent);background:rgba(63,185,80,.04)}
+.dropz-ico{font-size:34px;margin-bottom:8px}
+.dropz-txt{color:var(--muted);font-size:13px}
+.dropz-hint{font-size:11px;color:#555;margin-top:5px}
+.col-tags{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:11px 14px;font-size:12px;color:var(--muted);margin-bottom:18px}
+.col-tags strong{color:var(--text)}
+.ctag{display:inline-block;background:rgba(88,166,255,.1);color:var(--accent2);border-radius:4px;padding:1px 6px;font-size:11px;margin:2px}
+.spin{width:13px;height:13px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* FILTER */
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.inp-srch{flex:1;min-width:180px;background:var(--card2);border:1px solid var(--border);color:var(--text);padding:7px 11px;border-radius:var(--radius);font-size:13px;font-family:'Onest',sans-serif}
+.inp-srch:focus{outline:none;border-color:var(--accent2)}
+select.f-sel{background:var(--card2);border:1px solid var(--border);color:var(--text);padding:7px 11px;border-radius:var(--radius);font-size:12px;font-family:'Onest',sans-serif;cursor:pointer}
+select.f-sel:focus{outline:none}
+
+/* PAGINATION */
+.pg{display:flex;gap:5px;align-items:center;justify-content:flex-end;padding:12px 14px}
+.pg-btn{background:var(--card2);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;transition:all .15s}
+.pg-btn:hover,.pg-btn.active{border-color:var(--accent2);color:var(--accent2)}
+.pg-info{font-size:11px;color:var(--muted)}
+
+/* SETTINGS */
+.s-block{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:14px;max-width:640px}
+.s-block h3{font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700;margin-bottom:14px}
+.color-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
+.ci{display:flex;flex-direction:column;gap:4px}
+.ci label{font-size:10px;color:var(--muted)}
+.ci input[type=color]{width:100%;height:32px;border-radius:6px;border:1px solid var(--border);background:var(--card2);cursor:pointer;padding:2px}
+.sql-pre{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:13px;font-family:monospace;font-size:11px;color:#7ee787;overflow:auto;white-space:pre;max-height:260px}
+.toggle-key{cursor:pointer;font-size:11px;color:var(--accent2);margin-left:6px}
+
+/* MODALS */
+.overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.65);backdrop-filter:blur(4px);
+  z-index:1000;align-items:center;justify-content:center;
+}
+.overlay.open{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:26px;box-shadow:var(--shadow)}
+#del-modal{max-width:400px;width:90%}
+#del-modal h3{font-family:'Unbounded',sans-serif;font-size:14px;color:var(--accent3);margin-bottom:8px}
+#del-modal p{font-size:13px;color:var(--muted);margin-bottom:18px}
+#edit-modal{width:min(640px,95vw);max-height:90vh;overflow-y:auto}
+#edit-modal .em-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+#edit-modal .em-head h3{font-family:'Unbounded',sans-serif;font-size:14px}
+#edit-modal .em-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1}
+.ma{display:flex;gap:9px;justify-content:flex-end}
+
+/* TOAST */
+#toast{
+  position:fixed;bottom:22px;right:22px;
+  background:var(--card2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:11px 16px;
+  font-size:13px;color:var(--text);box-shadow:var(--shadow);
+  z-index:2000;transform:translateY(70px);opacity:0;
+  transition:all .25s;pointer-events:none;
+}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.ok{border-color:var(--accent);color:var(--accent)}
+#toast.er{border-color:var(--accent3);color:var(--accent3)}
+
+/* SAVE PROGRESS */
+#save-prog{display:none;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+
+@media(max-width:900px){.charts{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){
+  #sidebar{display:none}.stats{grid-template-columns:1fr}
+  #content{padding:14px}.fg{grid-template-columns:1fr}.fi.span2{grid-column:span 1}
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="logo">
+    <div class="logo-icon">🌴</div>
+    <div class="logo-name">ОтпускТрекер</div>
+    <div class="logo-sub">Управление отпусками</div>
+  </div>
+  <nav id="nav">
+    <button onclick="go('dashboard')"><span class="ico">◈</span> Дашборд</button>
+    <button onclick="go('upload')"><span class="ico">⬆</span> Загрузить Excel</button>
+    <button onclick="go('add')"><span class="ico">＋</span> Добавить запись</button>
+    <button onclick="go('records')"><span class="ico">≡</span> Все записи</button>
+    <button onclick="go('settings')"><span class="ico">⚙</span> Настройки</button>
+  </nav>
+  <div class="sb-status">
+    <span class="dot" id="dot"></span>
+    <span id="sb-txt">Подключение...</span>
+  </div>
+</aside>
+
+<!-- WRAP -->
+<div id="wrap">
+  <!-- HEADER -->
+  <div id="hdr">
+    <span class="hdr-title" id="hdr-title">Дашборд</span>
+    <button class="btn-sm" onclick="loadAll()">⟳ Обновить</button>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="p-dashboard">
+      <div class="pg-title">Обзор данных</div>
+      <div class="pg-sub">Сводная аналитика по отпускам сотрудников</div>
+
+      <div class="period-bar">
+        <button class="pbtn active" onclick="setPeriod('month',this)">Текущий месяц</button>
+        <button class="pbtn" onclick="setPeriod('custom',this)">Свой период</button>
+        <span id="custom-period" style="display:none;display:flex;gap:6px;align-items:center">
+          <input type="date" class="inp-date" id="d-from">
+          <input type="date" class="inp-date" id="d-to">
+          <button class="btn-p" onclick="applyPeriod()">Применить</button>
+        </span>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-ico">👥</div>
+          <div class="stat-lbl">Сотрудников в отпуске</div>
+          <div class="stat-val" id="s-total">—</div>
+          <div class="stat-unit">записей</div>
+        </div>
+        <div class="stat">
+          <div class="stat-ico">✅</div>
+          <div class="stat-lbl">Утверждено</div>
+          <div class="stat-val" id="s-approved">—</div>
+          <div class="stat-unit">записей</div>
+        </div>
+      </div>
+
+      <div class="charts">
+        <div class="chart-c"><h3>По статусам</h3><div class="chart-wrap"><canvas id="ch-status"></canvas></div></div>
+        <div class="chart-c"><h3>По месяцам</h3><div class="chart-wrap"><canvas id="ch-months"></canvas></div></div>
+        <div class="chart-c"><h3>По отделам (дней)</h3><div class="chart-wrap"><canvas id="ch-depts"></canvas></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Последние добавленные записи</h2>
+          <button class="lnk" onclick="go('records')">Все записи →</button>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>Сотрудник</th><th>Отдел</th><th>Начало</th><th>Конец</th>
+              <th>Дней</th><th>Статус</th><th>⏳ Статус дней</th><th>Добавлено</th>
+            </tr></thead>
+            <tbody id="recent-body"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Нет данных</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- UPLOAD -->
+    <div class="page" id="p-upload">
+      <div class="pg-title">Загрузить Excel</div>
+      <div class="pg-sub">Импорт из .xlsx — данные сохранятся в Supabase</div>
+
+      <div style="margin-bottom:16px">
+        <button class="btn-p" onclick="dlTemplate()">📥 Скачать шаблон Excel</button>
+      </div>
+
+      <div class="col-tags">
+        <strong>Ожидаемые столбцы:</strong>
+        <span class="ctag">ФИО сотрудника</span><span class="ctag">Отдел</span>
+        <span class="ctag">Должность</span><span class="ctag">Дата начала</span>
+        <span class="ctag">Дата окончания</span><span class="ctag">Кол-во дней</span>
+        <span class="ctag">Тип отпуска</span><span class="ctag">Статус</span>
+        <span class="ctag">Примечание</span>
+      </div>
+
+      <div class="dropz" id="dropz" onclick="document.getElementById('file-inp').click()">
+        <div class="dropz-ico">📂</div>
+        <div class="dropz-txt">Перетащите файл или нажмите для выбора</div>
+        <div class="dropz-hint">Поддерживается .xlsx, .xls</div>
+      </div>
+      <input type="file" id="file-inp" accept=".xlsx,.xls" style="display:none" onchange="handleFile(this.files[0])">
+
+      <div id="preview-sec" style="display:none">
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-head"><h2>Предпросмотр</h2></div>
+          <div class="tbl-wrap"><table><thead id="prev-head"></thead><tbody id="prev-body"></tbody></table></div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button class="btn-s" onclick="cancelUpload()">Отмена</button>
+          <button class="btn-p" onclick="saveUpload()">💾 Сохранить в Supabase</button>
+          <div id="save-prog"><div class="spin"></div><span id="save-txt">Сохранение...</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADD -->
+    <div class="page" id="p-add">
+      <div class="pg-title">Добавить запись</div>
+      <div class="pg-sub">Ручной ввод — сохраняется в Supabase</div>
+      <div class="form-card">
+        <div class="fg">
+          <div class="fi"><label>ФИО сотрудника *</label><input type="text" id="f-name" placeholder="Иванов Иван Иванович"></div>
+          <div class="fi"><label>Отдел</label><input type="text" id="f-dept" placeholder="Разработка"></div>
+          <div class="fi"><label>Должность</label><input type="text" id="f-pos" placeholder="Инженер"></div>
+          <div class="fi"><label>Тип отпуска</label>
+            <select id="f-type">
+              <option>Ежегодный</option><option>За свой счёт</option>
+              <option>Учебный</option><option>По уходу за ребёнком</option>
+              <option>Дополнительный</option><option>Больничный</option>
+            </select>
+          </div>
+          <div class="fi"><label>Дата начала *</label><input type="date" id="f-start"></div>
+          <div class="fi"><label>Дата окончания *</label><input type="date" id="f-end"></div>
+          <div class="fi"><label>Кол-во дней *</label><input type="number" id="f-days" min="1" placeholder="14"></div>
+          <div class="fi"><label>Статус</label>
+            <select id="f-status">
+              <option>На рассмотрении</option><option>Утверждён</option>
+              <option>Отклонён</option><option>Завершён</option>
+            </select>
+          </div>
+          <div class="fi span2"><label>Примечание</label><textarea id="f-note" rows="2"></textarea></div>
+        </div>
+        <div class="fa">
+          <button class="btn-s" onclick="clearForm()">Очистить</button>
+          <button class="btn-p" onclick="submitForm()">💾 Сохранить данные</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECORDS -->
+    <div class="page" id="p-records">
+      <div class="pg-title">Все записи</div>
+      <div class="pg-sub">Поиск, сортировка, фильтрация</div>
+      <div class="filter-bar">
+        <input class="inp-srch" id="srch" placeholder="🔍 Поиск по ФИО, отделу..." oninput="filterRecs()">
+        <input type="date" class="inp-date" id="r-from" onchange="filterRecs()">
+        <input type="date" class="inp-date" id="r-to" onchange="filterRecs()">
+        <select class="f-sel" id="r-status" onchange="filterRecs()">
+          <option value="">Все статусы</option>
+          <option>Активный</option><option>На рассмотрении</option>
+          <option>Утверждён</option><option>Отклонён</option><option>Завершён</option>
+        </select>
+        <button class="btn-s" onclick="resetFilters()">Сбросить</button>
+        <button class="btn-p" onclick="exportXlsx()">📥 Выгрузить Excel</button>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>ФИО <button class="sort-btn" onclick="sortBy('employee_name')">⇅</button></th>
+              <th>Отдел <button class="sort-btn" onclick="sortBy('department')">⇅</button></th>
+              <th>Тип</th>
+              <th>Начало <button class="sort-btn" onclick="sortBy('start_date')">⇅</button></th>
+              <th>Конец <button class="sort-btn" onclick="sortBy('end_date')">⇅</button></th>
+              <th>Дней <button class="sort-btn" onclick="sortBy('days_count')">⇅</button></th>
+              <th>Статус <button class="sort-btn" onclick="sortBy('status')">⇅</button></th>
+              <th>⏳ Статус дней</th>
+              <th>Добавлено <button class="sort-btn" onclick="sortBy('created_at')">⇅</button></th>
+              <th>Действия</th>
+            </tr></thead>
+            <tbody id="rec-body"><tr><td colspan="10" style="text-align:center;color:var(--muted);padding:20px">Загрузка...</td></tr></tbody>
+          </table>
+        </div>
+        <div class="pg" id="pg"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="p-settings">
+      <div class="pg-title">Настройки</div>
+      <div class="pg-sub">Подключение к Supabase и персонализация</div>
+
+      <div class="s-block">
+        <h3>🔗 Подключение Supabase</h3>
+        <div class="fi" style="margin-bottom:10px"><label>Supabase URL</label><input type="text" id="cfg-url" placeholder="https://xxxx.supabase.co"></div>
+        <div class="fi" style="margin-bottom:14px">
+          <label>Anon Key <span class="toggle-key" onclick="toggleKey()">Показать ключ</span></label>
+          <input type="password" id="cfg-key" placeholder="eyJhbGci...">
+        </div>
+        <button class="btn-p" onclick="saveConfig()">Сохранить и переподключить</button>
+      </div>
+
+      <div class="s-block">
+        <h3>🎨 Цветовая схема</h3>
+        <div class="color-grid">
+          <div class="ci"><label>Фон страницы</label><input type="color" value="#0d1117" oninput="setVar('--bg',this.value)"></div>
+          <div class="ci"><label>Фон карточек</label><input type="color" value="#161b22" oninput="setVar('--card',this.value)"></div>
+          <div class="ci"><label>Основной текст</label><input type="color" value="#e6edf3" oninput="setVar('--text',this.value)"></div>
+          <div class="ci"><label>Акцент</label><input type="color" value="#3fb950" oninput="setVar('--accent',this.value)"></div>
+          <div class="ci"><label>Сайдбар</label><input type="color" value="#161b22" oninput="setVar('--sidebar-bg',this.value)"></div>
+          <div class="ci"><label>Акцент 2</label><input type="color" value="#58a6ff" oninput="setVar('--accent2',this.value)"></div>
+        </div>
+        <div class="fa">
+          <button class="btn-s" onclick="resetColors()">Сбросить</button>
+          <button class="btn-p" onclick="toast('Цвета применены','ok')">Применить</button>
+        </div>
+      </div>
+
+      <div class="s-block">
+        <h3>🗄 SQL для Supabase</h3>
+        <pre class="sql-pre" id="sql-pre">-- ШАГ 1: Создать таблицу
+CREATE TABLE IF NOT EXISTS vacations (
+  id               BIGSERIAL PRIMARY KEY,
+  employee_name    TEXT          NOT NULL,
+  department       TEXT,
+  position         TEXT,
+  vacation_type    TEXT          NOT NULL DEFAULT 'Ежегодный',
+  start_date       DATE          NOT NULL,
+  end_date         DATE          NOT NULL,
+  days_count       INTEGER       NOT NULL DEFAULT 0,
+  status           TEXT          NOT NULL DEFAULT 'На рассмотрении',
+  note             TEXT,
+  created_at       TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+-- ШАГ 2: Индексы
+CREATE INDEX IF NOT EXISTS idx_vac_start   ON vacations(start_date);
+CREATE INDEX IF NOT EXISTS idx_vac_dept    ON vacations(department);
+CREATE INDEX IF NOT EXISTS idx_vac_status  ON vacations(status);
+CREATE INDEX IF NOT EXISTS idx_vac_created ON vacations(created_at);
+
+-- ШАГ 3: RLS
+ALTER TABLE vacations ENABLE ROW LEVEL SECURITY;
+
+-- ШАГ 4: Удалить старые политики
+DROP POLICY IF EXISTS "Allow anon read"   ON vacations;
+DROP POLICY IF EXISTS "Allow anon insert" ON vacations;
+DROP POLICY IF EXISTS "Allow anon update" ON vacations;
+DROP POLICY IF EXISTS "Allow anon delete" ON vacations;
+
+-- ШАГ 5: Создать политики
+CREATE POLICY "Allow anon read"   ON vacations FOR SELECT USING (true);
+CREATE POLICY "Allow anon insert" ON vacations FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow anon update" ON vacations FOR UPDATE USING (true);
+CREATE POLICY "Allow anon delete" ON vacations FOR DELETE USING (true);</pre>
+        <div class="fa"><button class="btn-p" onclick="copySql()">📋 Скопировать SQL</button></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /wrap -->
+
+<!-- DELETE MODAL -->
+<div class="overlay" id="del-ov">
+  <div class="modal" id="del-modal">
+    <h3>⚠️ Удалить запись?</h3>
+    <p>Это действие необратимо. Запись будет удалена из Supabase.</p>
+    <div class="ma">
+      <button class="btn-s" onclick="closeModal('del-ov')">Отмена</button>
+      <button class="btn-d" onclick="confirmDelete()">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="overlay" id="edit-ov">
+  <div class="modal" id="edit-modal">
+    <div class="em-head">
+      <h3>✎ Редактировать запись</h3>
+      <button class="em-close" onclick="closeModal('edit-ov')">✕</button>
+    </div>
+    <div class="fg">
+      <div class="fi"><label>ФИО сотрудника *</label><input type="text" id="e-name"></div>
+      <div class="fi"><label>Отдел</label><input type="text" id="e-dept"></div>
+      <div class="fi"><label>Должность</label><input type="text" id="e-pos"></div>
+      <div class="fi"><label>Тип отпуска</label>
+        <select id="e-type">
+          <option>Ежегодный</option><option>За свой счёт</option>
+          <option>Учебный</option><option>По уходу за ребёнком</option>
+          <option>Дополнительный</option><option>Больничный</option>
+        </select>
+      </div>
+      <div class="fi"><label>Дата начала *</label><input type="date" id="e-start"></div>
+      <div class="fi"><label>Дата окончания *</label><input type="date" id="e-end"></div>
+      <div class="fi"><label>Кол-во дней</label><input type="number" id="e-days" min="1"></div>
+      <div class="fi"><label>Статус</label>
+        <select id="e-status">
+          <option>На рассмотрении</option><option>Утверждён</option>
+          <option>Отклонён</option><option>Завершён</option>
+        </select>
+      </div>
+      <div class="fi span2"><label>Примечание</label><textarea id="e-note" rows="2"></textarea></div>
+    </div>
+    <div class="fa" style="margin-top:16px">
+      <button class="btn-s" onclick="closeModal('edit-ov')">Отмена</button>
+      <button class="btn-p" onclick="saveEdit()">💾 Сохранить изменения</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ── CONFIG ───────────────────────────────────────────────────────────
+let SB_URL = localStorage.getItem('sb_url') || '';
+let SB_KEY = localStorage.getItem('sb_key') || '';
+const TBL  = 'vacations';
+
+// ── STATE ────────────────────────────────────────────────────────────
+let allRecs = [], filtered = [];
+let sortCol = 'created_at', sortDir = -1;
+let curPage = 1;
+const PER = 20;
+let delId = null, editId = null;
+let uploadRows = [];
+let period = { from: null, to: null };
+let charts = {};
+
+// ── INIT ─────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const uEl = document.getElementById('cfg-url');
+  const kEl = document.getElementById('cfg-key');
+  if (uEl && SB_URL) uEl.value = SB_URL;
+  if (kEl && SB_KEY) kEl.value = SB_KEY;
+
+  // Автопересчёт дней в форме добавления
+  document.getElementById('f-start').addEventListener('change', calcDays);
+  document.getElementById('f-end').addEventListener('change', calcDays);
+  document.getElementById('e-start').addEventListener('change', calcEditDays);
+  document.getElementById('e-end').addEventListener('change', calcEditDays);
+
+  // Drag&drop
+  const dz = document.getElementById('dropz');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag'); handleFile(e.dataTransfer.files[0]); });
+
+  // Период по умолчанию — текущий месяц
+  const now = new Date();
+  period.from = new Date(now.getFullYear(), now.getMonth(), 1);
+  period.to   = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  go('dashboard');
+
+  if (SB_URL && SB_KEY) {
+    loadAll();
+  } else {
+    setDot('err');
+    document.getElementById('sb-txt').textContent = 'Нет настроек';
+    toast('Укажите Supabase URL и Key в разделе Настройки', 'er');
+  }
+});
+
+// ── NAVIGATION ───────────────────────────────────────────────────────
+const PAGE_NAMES = { dashboard:'Дашборд', upload:'Загрузить Excel', add:'Добавить запись', records:'Все записи', settings:'Настройки' };
+function go(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#nav button').forEach(b => b.classList.remove('active'));
+  const pg = document.getElementById('p-' + id);
+  if (pg) pg.classList.add('active');
+  const btns = document.querySelectorAll('#nav button');
+  btns.forEach(b => { if (b.getAttribute('onclick') === "go('" + id + "')") b.classList.add('active'); });
+  const t = document.getElementById('hdr-title');
+  if (t) t.textContent = PAGE_NAMES[id] || id;
+  if (id === 'dashboard') renderDash();
+  if (id === 'records')   renderRecs();
+}
+
+// ── API ──────────────────────────────────────────────────────────────
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(SB_URL + '/rest/v1/' + path, {
+    method: opts.method || 'GET',
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': opts.prefer || ''
+    },
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  if (!res.ok) throw new Error(await res.text());
+  try { return await res.json(); } catch { return null; }
+}
+
+async function loadAll() {
+  setDot('connecting');
+  try {
+    const data = await apiFetch(TBL + '?select=*&order=created_at.desc&limit=5000');
+    allRecs = Array.isArray(data) ? data : [];
+    setDot('ok');
+    const active = document.querySelector('.page.active');
+    if (active) {
+      if (active.id === 'p-dashboard') renderDash();
+      if (active.id === 'p-records')   renderRecs();
+    }
+  } catch(e) {
+    setDot('err');
+    toast('Ошибка подключения: ' + e.message, 'er');
+  }
+}
+
+// ── STATUS DOT ───────────────────────────────────────────────────────
+function setDot(s) {
+  const d = document.getElementById('dot');
+  const t = document.getElementById('sb-txt');
+  if (!d) return;
+  d.className = 'dot' + (s === 'ok' ? ' ok' : s === 'err' ? ' err' : '');
+  t.textContent = s === 'ok' ? 'Подключено' : s === 'err' ? 'Нет соединения' : 'Подключение...';
+}
+
+// ── PERIOD ───────────────────────────────────────────────────────────
+function setPeriod(mode, el) {
+  document.querySelectorAll('.pbtn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  const cp = document.getElementById('custom-period');
+  cp.style.display = mode === 'custom' ? 'flex' : 'none';
+  const now = new Date();
+  if (mode === 'month') {
+    period.from = new Date(now.getFullYear(), now.getMonth(), 1);
+    period.to   = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    renderDash();
+  }
+}
+function applyPeriod() {
+  const f = document.getElementById('d-from').value;
+  const t = document.getElementById('d-to').value;
+  period.from = f ? new Date(f) : null;
+  period.to   = t ? new Date(t) : null;
+  renderDash();
+}
+function inPeriod(r) {
+  if (!period.from && !period.to) return true;
+  const d = new Date(r.start_date);
+  if (period.from && d < period.from) return false;
+  if (period.to   && d > period.to)   return false;
+  return true;
+}
+
+// ── DASHBOARD ────────────────────────────────────────────────────────
+function renderDash() {
+  const rows = allRecs.filter(inPeriod);
+  const t = document.getElementById('s-total');
+  const a = document.getElementById('s-approved');
+  if (t) t.textContent = rows.length;
+  if (a) a.textContent = rows.filter(r => r.status === 'Утверждён').length;
+
+  const rb = document.getElementById('recent-body');
+  if (!rb) return;
+  if (!rows.length) {
+    rb.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Нет данных</td></tr>';
+  } else {
+    rb.innerHTML = rows.slice(0,8).map(r => `<tr>
+      <td>${r.employee_name||'—'}</td>
+      <td>${r.department||'—'}</td>
+      <td>${fd(r.start_date)}</td>
+      <td>${fd(r.end_date)}</td>
+      <td>${r.days_count||'—'}</td>
+      <td>${sBadge(r.status, r.start_date, r.end_date)}</td>
+      <td>${daysBadge(r.start_date, r.end_date)}</td>
+      <td style="color:var(--muted);font-size:11px">${fd(r.created_at)}</td>
+    </tr>`).join('');
+  }
+  drawCharts(rows);
+}
+
+function drawCharts(rows) {
+  const statusEl = document.getElementById('ch-status');
+  if (!statusEl) return;
+
+  const sm = {}, mm = {}, dm = {};
+  rows.forEach(r => {
+    const s = sBadge(r.status, r.start_date, r.end_date, true);
+    sm[s] = (sm[s]||0) + 1;
+    if (r.start_date) {
+      const m = new Date(r.start_date).toLocaleString('ru', {month:'short'});
+      mm[m] = (mm[m]||0) + 1;
+    }
+    if (r.department) dm[r.department] = (dm[r.department]||0) + (r.days_count||0);
+  });
+
+  const colors = ['#3fb950','#58a6ff','#d2a8ff','#f78166','#ffa657','#79c0ff','#56d364'];
+
+  if (charts.status) charts.status.destroy();
+  charts.status = new Chart(statusEl, {
+    type:'doughnut',
+    data:{ labels:Object.keys(sm), datasets:[{data:Object.values(sm),backgroundColor:colors,borderWidth:0}] },
+    options:{ plugins:{ legend:{ labels:{ color:'#8b949e', font:{size:10} } } } }
+  });
+
+  if (charts.months) charts.months.destroy();
+  charts.months = new Chart(document.getElementById('ch-months'), {
+    type:'bar',
+    data:{ labels:Object.keys(mm), datasets:[{data:Object.values(mm),backgroundColor:'rgba(63,185,80,.6)',borderRadius:5}] },
+    options:{ plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'#21262d'}}, y:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'#21262d'}} } }
+  });
+
+  const de = Object.entries(dm).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  if (charts.depts) charts.depts.destroy();
+  charts.depts = new Chart(document.getElementById('ch-depts'), {
+    type:'bar',
+    data:{ labels:de.map(e=>e[0]), datasets:[{data:de.map(e=>e[1]),backgroundColor:'rgba(88,166,255,.6)',borderRadius:5}] },
+    options:{ indexAxis:'y', plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'#21262d'}}, y:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'transparent'}} } }
+  });
+}
+
+// ── RECORDS ──────────────────────────────────────────────────────────
+function filterRecs() {
+  const q  = (document.getElementById('srch').value||'').toLowerCase();
+  const f  = document.getElementById('r-from').value;
+  const t  = document.getElementById('r-to').value;
+  const st = document.getElementById('r-status').value;
+
+  filtered = allRecs.filter(r => {
+    if (q && !(r.employee_name||'').toLowerCase().includes(q) && !(r.department||'').toLowerCase().includes(q)) return false;
+    if (f && r.start_date < f) return false;
+    if (t && r.start_date > t) return false;
+    if (st) {
+      if (st === 'Активный') {
+        const now = new Date(); now.setHours(0,0,0,0);
+        const s = r.start_date ? new Date(r.start_date) : null;
+        const e = r.end_date   ? new Date(r.end_date)   : null;
+        if (!s||!e) return false;
+        s.setHours(0,0,0,0); e.setHours(0,0,0,0);
+        if (!(now >= s && now <= e && r.status !== 'Отклонён' && r.status !== 'Завершён')) return false;
+      } else {
+        if (r.status !== st) return false;
+      }
+    }
+    return true;
+  });
+
+  filtered.sort((a,b) => {
+    const av = a[sortCol]||'', bv = b[sortCol]||'';
+    return av < bv ? sortDir : av > bv ? -sortDir : 0;
+  });
+  curPage = 1;
+  renderTable();
+}
+
+function sortBy(col) {
+  sortDir = sortCol === col ? -sortDir : -1;
+  sortCol = col;
+  filterRecs();
+}
+
+function renderRecs() { filterRecs(); }
+
+function renderTable() {
+  const tbody = document.getElementById('rec-body');
+  const total = filtered.length;
+  const slice = filtered.slice((curPage-1)*PER, curPage*PER);
+  if (!slice.length) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:20px">Нет записей</td></tr>';
+  } else {
+    tbody.innerHTML = slice.map(r => `<tr>
+      <td>${r.employee_name||'—'}</td>
+      <td>${r.department||'—'}</td>
+      <td><span class="badge bk">${r.vacation_type||'—'}</span></td>
+      <td>${fd(r.start_date)}</td>
+      <td>${fd(r.end_date)}</td>
+      <td><b>${r.days_count||'—'}</b></td>
+      <td>${sBadge(r.status, r.start_date, r.end_date)}</td>
+      <td>${daysBadge(r.start_date, r.end_date)}</td>
+      <td style="color:var(--muted);font-size:11px">${fd(r.created_at)}</td>
+      <td style="display:flex;gap:5px">
+        <button class="btn-e" onclick="openEdit(${r.id})">✎</button>
+        <button class="btn-d" onclick="openDelete(${r.id})">✕</button>
+      </td>
+    </tr>`).join('');
+  }
+
+  // Pagination
+  const pgEl = document.getElementById('pg');
+  const pages = Math.ceil(total / PER);
+  if (pages <= 1) { pgEl.innerHTML = `<span class="pg-info">${total} записей</span>`; return; }
+  let html = `<span class="pg-info">${total} записей</span>`;
+  if (curPage > 1) html += `<button class="pg-btn" onclick="goPage(${curPage-1})">‹</button>`;
+  for (let i = Math.max(1,curPage-2); i <= Math.min(pages,curPage+2); i++)
+    html += `<button class="pg-btn${i===curPage?' active':''}" onclick="goPage(${i})">${i}</button>`;
+  if (curPage < pages) html += `<button class="pg-btn" onclick="goPage(${curPage+1})">›</button>`;
+  pgEl.innerHTML = html;
+}
+
+function goPage(p) { curPage = p; renderTable(); }
+function resetFilters() {
+  document.getElementById('srch').value = '';
+  document.getElementById('r-from').value = '';
+  document.getElementById('r-to').value = '';
+  document.getElementById('r-status').value = '';
+  filterRecs();
+}
+
+// ── ADD FORM ─────────────────────────────────────────────────────────
+function calcDays() {
+  const s = document.getElementById('f-start').value;
+  const e = document.getElementById('f-end').value;
+  if (s && e) { const d = Math.round((new Date(e)-new Date(s))/86400000)+1; if (d>0) document.getElementById('f-days').value = d; }
+}
+function clearForm() {
+  ['f-name','f-dept','f-pos','f-start','f-end','f-days','f-note'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('f-type').value = 'Ежегодный';
+  document.getElementById('f-status').value = 'На рассмотрении';
+}
+async function submitForm() {
+  const name = document.getElementById('f-name').value.trim();
+  const start = document.getElementById('f-start').value;
+  const end = document.getElementById('f-end').value;
+  const days = document.getElementById('f-days').value;
+  if (!name||!start||!end||!days) { toast('Заполните обязательные поля', 'er'); return; }
+  try {
+    await apiFetch(TBL, { method:'POST', body:{ employee_name:name, department:document.getElementById('f-dept').value.trim(), position:document.getElementById('f-pos').value.trim(), vacation_type:document.getElementById('f-type').value, start_date:start, end_date:end, days_count:parseInt(days), status:document.getElementById('f-status').value, note:document.getElementById('f-note').value.trim() }, prefer:'return=minimal' });
+    toast('Запись сохранена ✓', 'ok');
+    clearForm();
+    await loadAll();
+  } catch(e) { toast('Ошибка: '+e.message, 'er'); }
+}
+
+// ── UPLOAD ───────────────────────────────────────────────────────────
+function handleFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const wb = XLSX.read(e.target.result, {type:'binary'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const raw = XLSX.utils.sheet_to_json(ws, {header:1});
+    if (raw.length < 2) { toast('Файл пустой','er'); return; }
+    const hdrs = raw[0];
+    uploadRows = raw.slice(1).map(r => {
+      const obj = {}; hdrs.forEach((h,i) => { obj[h] = r[i]; });
+      return mapRow(obj);
+    }).filter(r => r.employee_name);
+    // Preview
+    document.getElementById('prev-head').innerHTML = '<tr>'+hdrs.map(h=>`<th>${h}</th>`).join('')+'</tr>';
+    document.getElementById('prev-body').innerHTML = raw.slice(1,11).map(r=>'<tr>'+hdrs.map((_,i)=>`<td>${r[i]??''}</td>`).join('')+'</tr>').join('');
+    document.getElementById('preview-sec').style.display = 'block';
+  };
+  reader.readAsBinaryString(file);
+}
+
+const COL = {'ФИО сотрудника':'employee_name','ФИО':'employee_name','Сотрудник':'employee_name','Отдел':'department','Должность':'position','Дата начала':'start_date','Начало':'start_date','Дата окончания':'end_date','Конец':'end_date','Окончание':'end_date','Кол-во дней':'days_count','Дней':'days_count','Количество дней':'days_count','Тип отпуска':'vacation_type','Тип':'vacation_type','Статус':'status','Примечание':'note','Комментарий':'note'};
+
+function mapRow(obj) {
+  const r = {};
+  for (const [k,v] of Object.entries(obj)) { const m = COL[k.trim()]; if (m) r[m] = v; }
+  if (r.start_date) r.start_date = xlDate(r.start_date);
+  if (r.end_date)   r.end_date   = xlDate(r.end_date);
+  if (r.days_count) r.days_count = parseInt(r.days_count)||0;
+  if (!r.vacation_type) r.vacation_type = 'Ежегодный';
+  if (!r.status)        r.status = 'На рассмотрении';
+  return r;
+}
+function xlDate(v) {
+  if (!v) return null;
+  if (typeof v === 'number') return new Date(Math.round((v-25569)*86400000)).toISOString().slice(0,10);
+  if (typeof v === 'string' && v.match(/\d{4}-\d{2}-\d{2}/)) return v;
+  return v;
+}
+
+async function saveUpload() {
+  if (!uploadRows.length) { toast('Нет данных','er'); return; }
+  const prog = document.getElementById('save-prog');
+  const txt  = document.getElementById('save-txt');
+  prog.style.display = 'flex';
+  let saved = 0;
+  for (const row of uploadRows) {
+    try { await apiFetch(TBL, {method:'POST',body:row,prefer:'return=minimal'}); saved++; }
+    catch(e) { console.warn(e); }
+    txt.textContent = `Сохранение ${saved} / ${uploadRows.length}...`;
+  }
+  prog.style.display = 'none';
+  toast(`Сохранено ${saved} записей ✓`,'ok');
+  cancelUpload();
+  await loadAll();
+}
+function cancelUpload() {
+  document.getElementById('preview-sec').style.display = 'none';
+  document.getElementById('file-inp').value = '';
+  uploadRows = [];
+}
+
+function dlTemplate() {
+  const h = ['ФИО сотрудника','Отдел','Должность','Дата начала','Дата окончания','Кол-во дней','Тип отпуска','Статус','Примечание'];
+  const ex = ['Иванов Иван Иванович','Разработка','Инженер','2025-07-01','2025-07-14','14','Ежегодный','Утверждён','Плановый отпуск'];
+  const ws = XLSX.utils.aoa_to_sheet([h, ex]);
+  ws['!cols'] = h.map((_,i) => ({wch:[28,18,18,14,14,12,18,18,24][i]}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Шаблон');
+  XLSX.writeFile(wb, 'vacation_template.xlsx');
+  toast('Шаблон скачан ✓','ok');
+}
+
+// ── DELETE ───────────────────────────────────────────────────────────
+function openDelete(id) { delId = parseInt(id); document.getElementById('del-ov').classList.add('open'); }
+async function confirmDelete() {
+  if (!delId) return;
+  closeModal('del-ov');
+  try {
+    const res = await fetch(SB_URL+'/rest/v1/'+TBL+'?id=eq.'+delId, {
+      method:'DELETE',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'}
+    });
+    if (!res.ok) throw new Error(await res.text());
+    toast('Запись удалена ✓','ok');
+    await loadAll();
+  } catch(e) { toast('Ошибка: '+e.message,'er'); }
+}
+
+// ── EDIT ─────────────────────────────────────────────────────────────
+function openEdit(id) {
+  const r = allRecs.find(x => x.id === parseInt(id));
+  if (!r) return;
+  editId = r.id;
+  document.getElementById('e-name').value  = r.employee_name||'';
+  document.getElementById('e-dept').value  = r.department||'';
+  document.getElementById('e-pos').value   = r.position||'';
+  document.getElementById('e-type').value  = r.vacation_type||'Ежегодный';
+  document.getElementById('e-start').value = r.start_date||'';
+  document.getElementById('e-end').value   = r.end_date||'';
+  document.getElementById('e-days').value  = r.days_count||'';
+  document.getElementById('e-status').value= r.status||'На рассмотрении';
+  document.getElementById('e-note').value  = r.note||'';
+  document.getElementById('edit-ov').classList.add('open');
+}
+function calcEditDays() {
+  const s = document.getElementById('e-start').value;
+  const e = document.getElementById('e-end').value;
+  if (s&&e) { const d=Math.round((new Date(e)-new Date(s))/86400000)+1; if(d>0) document.getElementById('e-days').value=d; }
+}
+async function saveEdit() {
+  const name  = document.getElementById('e-name').value.trim();
+  const start = document.getElementById('e-start').value;
+  const end   = document.getElementById('e-end').value;
+  const days  = document.getElementById('e-days').value;
+  if (!name||!start||!end) { toast('Заполните обязательные поля','er'); return; }
+  try {
+    const res = await fetch(SB_URL+'/rest/v1/'+TBL+'?id=eq.'+parseInt(editId), {
+      method:'PATCH',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body: JSON.stringify({ employee_name:name, department:document.getElementById('e-dept').value.trim(), position:document.getElementById('e-pos').value.trim(), vacation_type:document.getElementById('e-type').value, start_date:start, end_date:end, days_count:parseInt(days)||0, status:document.getElementById('e-status').value, note:document.getElementById('e-note').value.trim() })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    toast('Сохранено ✓','ok');
+    closeModal('edit-ov');
+    await loadAll();
+  } catch(e) { toast('Ошибка: '+e.message,'er'); }
+}
+
+// ── MODAL ────────────────────────────────────────────────────────────
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ── SETTINGS ─────────────────────────────────────────────────────────
+function saveConfig() {
+  SB_URL = document.getElementById('cfg-url').value.trim().replace(/\/$/,'');
+  SB_KEY = document.getElementById('cfg-key').value.trim();
+  localStorage.setItem('sb_url', SB_URL);
+  localStorage.setItem('sb_key', SB_KEY);
+  toast('Настройки сохранены','ok');
+  loadAll();
+}
+function toggleKey() {
+  const el = document.getElementById('cfg-key');
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+function setVar(name, val) { document.documentElement.style.setProperty(name, val); }
+function resetColors() {
+  const defs = {'--bg':'#0d1117','--card':'#161b22','--text':'#e6edf3','--accent':'#3fb950','--sidebar-bg':'#161b22','--accent2':'#58a6ff'};
+  for (const [k,v] of Object.entries(defs)) document.documentElement.style.setProperty(k,v);
+}
+function copySql() {
+  navigator.clipboard.writeText(document.getElementById('sql-pre').textContent);
+  toast('SQL скопирован ✓','ok');
+}
+
+// ── EXPORT ───────────────────────────────────────────────────────────
+function exportXlsx() {
+  const rows = filtered.map(r => ({'ФИО сотрудника':r.employee_name,'Отдел':r.department,'Должность':r.position,'Тип отпуска':r.vacation_type,'Дата начала':r.start_date,'Дата окончания':r.end_date,'Кол-во дней':r.days_count,'Статус':r.status,'Примечание':r.note,'Добавлено':r.created_at}));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Отпуска');
+  XLSX.writeFile(wb, 'vacations_export.xlsx');
+}
+
+// ── HELPERS ──────────────────────────────────────────────────────────
+function fd(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('ru-RU');
+}
+
+function sBadge(s, start, end, textOnly) {
+  // Автоопределение "Активный"
+  if (s !== 'Отклонён' && s !== 'Завершён' && start && end) {
+    const now = new Date(); now.setHours(0,0,0,0);
+    const sd = new Date(start); sd.setHours(0,0,0,0);
+    const ed = new Date(end);   ed.setHours(0,0,0,0);
+    if (now >= sd && now <= ed) s = 'Активный';
+  }
+  if (textOnly) return s;
+  const cls = {Активный:'ba',Утверждён:'bg','На рассмотрении':'bb',Отклонён:'br',Завершён:'bk'};
+  return `<span class="badge ${cls[s]||'bk'}">${s||'—'}</span>`;
+}
+
+function daysBadge(startStr, endStr) {
+  if (!startStr||!endStr) return '<span style="color:var(--muted);font-size:11px">—</span>';
+  const now   = new Date(); now.setHours(0,0,0,0);
+  const start = new Date(startStr); start.setHours(0,0,0,0);
+  const end   = new Date(endStr);   end.setHours(0,0,0,0);
+  if (now >= start && now <= end) {
+    const left = Math.round((end - now) / 86400000);
+    if (left === 0) return '<span class="badge bb">последний день</span>';
+    return `<span class="badge bg">осталось ${left} д.</span>`;
+  } else if (now < start) {
+    const before = Math.round((start - now) / 86400000);
+    if (before === 1) return '<span class="badge bp">завтра</span>';
+    return `<span class="badge bb">через ${before} д.</span>`;
+  }
+  return '<span class="badge bk">завершён</span>';
+}
+
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + (type||'');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.className = '', 3000);
+}
+</script>
+</body>
+</html>
