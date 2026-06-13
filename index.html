@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>ОтпускТрекер</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
@@ -218,10 +218,77 @@ select.f-sel:focus{outline:none}
 /* SAVE PROGRESS */
 #save-prog{display:none;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
 
-@media(max-width:900px){.charts{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
+@media(max-width:900px){
+  .charts{grid-template-columns:1fr 1fr}
+  .stats{grid-template-columns:1fr 1fr}
+}
+
+/* ── МОБИЛЬНЫЕ ───────────────────────────────── */
 @media(max-width:600px){
-  #sidebar{display:none}.stats{grid-template-columns:1fr}
-  #content{padding:14px}.fg{grid-template-columns:1fr}.fi.span2{grid-column:span 1}
+  #sidebar{display:none}
+  #wrap{padding-bottom:calc(58px + env(safe-area-inset-bottom))}
+  #hdr{padding:0 14px;height:50px}
+  #content{padding:12px;padding-bottom:calc(70px + env(safe-area-inset-bottom))}
+  .stats{grid-template-columns:1fr 1fr;gap:10px}
+  .stat{padding:12px 14px}
+  .stat-val{font-size:18px}
+  .charts{grid-template-columns:1fr;gap:10px}
+  .chart-wrap{height:130px}
+  .fg{grid-template-columns:1fr}
+  .fi.span2{grid-column:span 1}
+  .form-card{padding:14px}
+  .filter-bar{gap:6px}
+  .inp-srch{width:100%}
+  table{font-size:11px}
+  th,td{padding:7px 9px}
+  .hide-mob{display:none!important}
+  .pg{flex-wrap:wrap;justify-content:center}
+  .s-block{padding:14px}
+  .color-grid{grid-template-columns:1fr 1fr}
+  .sql-pre{font-size:10px;max-height:160px}
+  .card-head{padding:12px 14px}
+  .pg-title{font-size:15px}
+  .col-tags{font-size:11px}
+  .dropz{padding:28px 14px}
+  .fa{flex-wrap:wrap}
+  .fa .btn-p,.fa .btn-s{flex:1;text-align:center}
+}
+
+/* Bottom nav */
+#bnav{display:none}
+@media(max-width:600px){
+  #bnav{
+    display:flex;position:fixed;
+    bottom:0;left:0;right:0;
+    height:calc(58px + env(safe-area-inset-bottom));
+    padding-bottom:env(safe-area-inset-bottom);
+    background:var(--card);border-top:1px solid var(--border);
+    z-index:500;
+  }
+  #bnav button{
+    flex:1;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:2px;
+    border:none;background:none;color:var(--muted);
+    font-size:9px;font-family:'Onest',sans-serif;
+    cursor:pointer;padding:6px 2px;transition:color .15s;
+  }
+  #bnav button .bi{font-size:19px;line-height:1}
+  #bnav button.active{color:var(--accent)}
+  #bnav button:active{opacity:.6}
+}
+
+/* Toast над bottom nav */
+@media(max-width:600px){
+  #toast{
+    bottom:calc(66px + env(safe-area-inset-bottom));
+    right:12px;left:12px;text-align:center;font-size:12px;
+  }
+}
+
+/* Убрать hover на touch */
+@media(hover:none){
+  nav button:hover{background:none;color:var(--muted)}
+  nav button.active{background:rgba(63,185,80,.13);color:var(--accent)}
 }
 </style>
 </head>
@@ -302,8 +369,8 @@ select.f-sel:focus{outline:none}
         <div class="tbl-wrap">
           <table>
             <thead><tr>
-              <th>Сотрудник</th><th>Отдел</th><th>Начало</th><th>Конец</th>
-              <th>Дней</th><th>Статус</th><th>⏳ Статус дней</th><th>Добавлено</th>
+              <th>Сотрудник</th><th class="hide-mob">Отдел</th><th>Начало</th><th class="hide-mob">Конец</th>
+              <th class="hide-mob">Дней</th><th>Статус</th><th>⏳ Статус дней</th><th class="hide-mob">Добавлено</th>
             </tr></thead>
             <tbody id="recent-body"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Нет данных</td></tr></tbody>
           </table>
@@ -404,14 +471,14 @@ select.f-sel:focus{outline:none}
           <table>
             <thead><tr>
               <th>ФИО <button class="sort-btn" onclick="sortBy('employee_name')">⇅</button></th>
-              <th>Отдел <button class="sort-btn" onclick="sortBy('department')">⇅</button></th>
-              <th>Тип</th>
+              <th class="hide-mob">Отдел <button class="sort-btn" onclick="sortBy('department')">⇅</button></th>
+              <th class="hide-mob">Тип</th>
               <th>Начало <button class="sort-btn" onclick="sortBy('start_date')">⇅</button></th>
-              <th>Конец <button class="sort-btn" onclick="sortBy('end_date')">⇅</button></th>
-              <th>Дней <button class="sort-btn" onclick="sortBy('days_count')">⇅</button></th>
+              <th class="hide-mob">Конец <button class="sort-btn" onclick="sortBy('end_date')">⇅</button></th>
+              <th class="hide-mob">Дней <button class="sort-btn" onclick="sortBy('days_count')">⇅</button></th>
               <th>Статус <button class="sort-btn" onclick="sortBy('status')">⇅</button></th>
               <th>⏳ Статус дней</th>
-              <th>Добавлено <button class="sort-btn" onclick="sortBy('created_at')">⇅</button></th>
+              <th class="hide-mob">Добавлено <button class="sort-btn" onclick="sortBy('created_at')">⇅</button></th>
               <th>Действия</th>
             </tr></thead>
             <tbody id="rec-body"><tr><td colspan="10" style="text-align:center;color:var(--muted);padding:20px">Загрузка...</td></tr></tbody>
@@ -544,13 +611,22 @@ CREATE POLICY "Allow anon delete" ON vacations FOR DELETE USING (true);</pre>
   </div>
 </div>
 
+<!-- BOTTOM NAV -->
+<nav id="bnav">
+  <button onclick="go('dashboard')"><span class="bi">◈</span>Дашборд</button>
+  <button onclick="go('upload')"><span class="bi">⬆</span>Загрузить</button>
+  <button onclick="go('add')"><span class="bi">＋</span>Добавить</button>
+  <button onclick="go('records')"><span class="bi">≡</span>Записи</button>
+  <button onclick="go('settings')"><span class="bi">⚙</span>Настройки</button>
+</nav>
+
 <!-- TOAST -->
 <div id="toast"></div>
 
 <script>
 // ── CONFIG ───────────────────────────────────────────────────────────
-let SB_URL = localStorage.getItem('sb_url') || '';
-let SB_KEY = localStorage.getItem('sb_key') || '';
+let SB_URL = localStorage.getItem('sb_url') || 'https://rivbbqcrzdiedoghpklb.supabase.co';
+let SB_KEY = localStorage.getItem('sb_key') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJpdmJicWNyemRpZWRvZ2hwa2xiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3NTI2ODEsImV4cCI6MjA5NjMyODY4MX0.ILdGqbRbG2NvJufHZ3KOllBBL2qKGXwuw9HH1qviTkw';
 const TBL  = 'vacations';
 
 // ── STATE ────────────────────────────────────────────────────────────
@@ -567,8 +643,8 @@ let charts = {};
 document.addEventListener('DOMContentLoaded', () => {
   const uEl = document.getElementById('cfg-url');
   const kEl = document.getElementById('cfg-key');
-  if (uEl && SB_URL) uEl.value = SB_URL;
-  if (kEl && SB_KEY) kEl.value = SB_KEY;
+  if (uEl) uEl.value = SB_URL;
+  if (kEl) kEl.value = SB_KEY;
 
   // Автопересчёт дней в форме добавления
   document.getElementById('f-start').addEventListener('change', calcDays);
@@ -602,11 +678,12 @@ document.addEventListener('DOMContentLoaded', () => {
 const PAGE_NAMES = { dashboard:'Дашборд', upload:'Загрузить Excel', add:'Добавить запись', records:'Все записи', settings:'Настройки' };
 function go(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('#nav button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#nav button, #bnav button').forEach(b => b.classList.remove('active'));
   const pg = document.getElementById('p-' + id);
   if (pg) pg.classList.add('active');
-  const btns = document.querySelectorAll('#nav button');
-  btns.forEach(b => { if (b.getAttribute('onclick') === "go('" + id + "')") b.classList.add('active'); });
+  document.querySelectorAll('#nav button, #bnav button').forEach(b => {
+    if (b.getAttribute('onclick') === "go('" + id + "')") b.classList.add('active');
+  });
   const t = document.getElementById('hdr-title');
   if (t) t.textContent = PAGE_NAMES[id] || id;
   if (id === 'dashboard') renderDash();
@@ -698,13 +775,13 @@ function renderDash() {
   } else {
     rb.innerHTML = rows.slice(0,8).map(r => `<tr>
       <td>${r.employee_name||'—'}</td>
-      <td>${r.department||'—'}</td>
+      <td class="hide-mob">${r.department||'—'}</td>
       <td>${fd(r.start_date)}</td>
-      <td>${fd(r.end_date)}</td>
-      <td>${r.days_count||'—'}</td>
+      <td class="hide-mob">${fd(r.end_date)}</td>
+      <td class="hide-mob">${r.days_count||'—'}</td>
       <td>${sBadge(r.status, r.start_date, r.end_date)}</td>
       <td>${daysBadge(r.start_date, r.end_date)}</td>
-      <td style="color:var(--muted);font-size:11px">${fd(r.created_at)}</td>
+      <td class="hide-mob" style="color:var(--muted);font-size:11px">${fd(r.created_at)}</td>
     </tr>`).join('');
   }
   drawCharts(rows);
@@ -801,14 +878,14 @@ function renderTable() {
   } else {
     tbody.innerHTML = slice.map(r => `<tr>
       <td>${r.employee_name||'—'}</td>
-      <td>${r.department||'—'}</td>
-      <td><span class="badge bk">${r.vacation_type||'—'}</span></td>
+      <td class="hide-mob">${r.department||'—'}</td>
+      <td class="hide-mob"><span class="badge bk">${r.vacation_type||'—'}</span></td>
       <td>${fd(r.start_date)}</td>
-      <td>${fd(r.end_date)}</td>
-      <td><b>${r.days_count||'—'}</b></td>
+      <td class="hide-mob">${fd(r.end_date)}</td>
+      <td class="hide-mob"><b>${r.days_count||'—'}</b></td>
       <td>${sBadge(r.status, r.start_date, r.end_date)}</td>
       <td>${daysBadge(r.start_date, r.end_date)}</td>
-      <td style="color:var(--muted);font-size:11px">${fd(r.created_at)}</td>
+      <td class="hide-mob" style="color:var(--muted);font-size:11px">${fd(r.created_at)}</td>
       <td style="display:flex;gap:5px">
         <button class="btn-e" onclick="openEdit(${r.id})">✎</button>
         <button class="btn-d" onclick="openDelete(${r.id})">✕</button>
